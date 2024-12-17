@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SAP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+      color: #333;  
+    }
+    .container {
+      max-width: 800px;
+      margin: 10px auto;
+      padding: 10px;
+      background: #ffffff;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #4caf50;
+    }
+    .filter-container {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f0f4f8;
+      border-radius: 8px;
+    }
+    .filter-container label {
+      margin-right: 10px;
+      font-weight: bold;
+    }
+    .filter-container select, .filter-container input {
+      margin-right: 20px;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .filter-container button {
+      padding: 8px 15px;
+      background-color: #2196f3;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .filter-container button:hover {
+      background-color: #1976d2;
+    }
+    .question {
+      margin-bottom: 20px;
+    }
+    .question h2 {
+      font-size: 18px;
+      color: #333;
+    }
+    .options {
+      list-style: none;
+      padding: 0;
+    }
+    .options li {
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #f4f4f4;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .options li:hover {
+      background: #e0e0e0;
+    }
+    .options li.correct {
+      background: #c8e6c9;
+      color: #256029;
+      font-weight: bold;
+    }
+    .options li.incorrect {
+      background: #ffcdd2;
+      color: #b71c1c;
+      font-weight: bold;
+    }
+    .options li.selected {
+      border: 2px solid #2196f3;
+    }
+    .explanation {
+      margin-top: 15px;
+      padding: 10px;
+      background: #e8f5e9;
+      border-radius: 4px;
+      color: #256029;
+      display: none;
+    }
+    .navigation {
+      display: flex;
+      justify-content: space-between;
+    }
+    .navigation button {
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .navigation button:disabled {
+      background-color: #c8c8c8;
+      cursor: not-allowed;
+    }
+    .navigation button:hover:not(:disabled) {
+      background-color: #388e3c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SAP</h1>
+
+    <!-- Filter Section -->
+    <div class="filter-container">
+      <label for="topic">Topic:</label>
+      <select id="topic">
+        <option value="">All</option>
+        <option value="(Topic 1)">Topic 1</option>
+        <option value="(Topic 2)">Topic 2</option>
+        <option value="(Topic 3)">Topic 3</option>
+        <option value="(Topic 4)">Topic 4</option>
+      </select>
+
+      <label for="answerType">Answer Type:</label>
+      <select id="answerType">
+        <option value="">All</option>
+        <option value="single">Single Answer</option>
+        <option value="multiple">Multiple Answer</option>
+      </select>
+
+      <button id="filterBtn">Filter</button>
+    </div>
+
+    <!-- Quiz Section -->
+    <div id="quiz"></div>
+
+    <!-- Navigation Buttons -->
+    <div class="navigation">
+      <button id="prevBtn" disabled>Previous</button>
+      <button id="submitBtn">Submit</button>
+      <button id="nextBtn" disabled>Next</button>
+    </div>
+  </div>
+
+  <script>
+    let questions = []; // All questions
+    let filteredQuestions = []; // Questions after filtering
+    let currentQuestionIndex = 0;
+    let selectedOptions = [];
+
+    const quizContainer = document.getElementById("quiz");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const filterBtn = document.getElementById("filterBtn");
+
+    // Load quiz data
+    async function loadQuizData() {
+      try {
+        const response = await fetch("data.json");
+        questions = await response.json();
+        filteredQuestions = questions; // Initially show all questions
+        renderQuestion();
+      } catch (error) {
+        console.error("Error loading quiz data:", error);
+      }
+    }
+
+    // Render a question
+    function renderQuestion() {
+      if (filteredQuestions.length === 0) {
+        quizContainer.innerHTML = `<p>No questions match your criteria.</p>`;
+        return;
+      }
+
+      const questionData = filteredQuestions[currentQuestionIndex];
+      selectedOptions = []; // Clear previous selections
+
+      quizContainer.innerHTML = `
+        <div class="question">
+          <h2>${questionData.questionNumber}. ${questionData.question}</h2>
+          <ul class="options">
+            ${Object.entries(questionData.options).map(([key, value]) => `
+              <li onclick="toggleOption(this, '${key}')">${key}. ${value}</li>
+            `).join('')}
+          </ul>
+          <div class="explanation" id="explanation">
+            <strong>Explanation:</strong> ${questionData.explanation}
+          </div>
+        </div>
+      `;
+
+      prevBtn.disabled = currentQuestionIndex === 0;
+      nextBtn.disabled = true;
+      submitBtn.disabled = false;
+    }
+
+    // Toggle option selection
+    function toggleOption(optionElement, key) {
+      if (selectedOptions.includes(key)) {
+        selectedOptions = selectedOptions.filter(o => o !== key);
+        optionElement.classList.remove("selected");
+      } else {
+        selectedOptions.push(key);
+        optionElement.classList.add("selected");
+      }
+    }
+
+    // Handle submission
+    submitBtn.addEventListener("click", () => {
+      const questionData = filteredQuestions[currentQuestionIndex];
+      const options = document.querySelectorAll(".options li");
+
+      options.forEach(option => {
+        const optionKey = option.textContent.charAt(0); // Get "A", "B", etc.
+        if (questionData.answer.includes(optionKey)) {
+          option.classList.add("correct");
+        } else if (selectedOptions.includes(optionKey)) {
+          option.classList.add("incorrect");
+        }
+      });
+
+      document.getElementById("explanation").style.display = "block";
+      submitBtn.disabled = true;
+      nextBtn.disabled = currentQuestionIndex === filteredQuestions.length - 1;
+    });
+
+    // Navigation buttons
+    prevBtn.addEventListener("click", () => {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        renderQuestion();
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (currentQuestionIndex < filteredQuestions.length - 1) {
+        currentQuestionIndex++;
+        renderQuestion();
+      }
+    });
+
+    // Filter questions
+    filterBtn.addEventListener("click", () => {
+      const selectedTopic = document.getElementById("topic").value;
+      const selectedAnswerType = document.getElementById("answerType").value;
+
+      filteredQuestions = questions.filter(q => {
+        const matchesTopic = !selectedTopic || q.topic === selectedTopic;
+        const matchesAnswerType = !selectedAnswerType || 
+          (selectedAnswerType === "single" && q.singleAnswer) || 
+          (selectedAnswerType === "multiple" && !q.singleAnswer);
+        return matchesTopic && matchesAnswerType;
+      });
+
+      currentQuestionIndex = 0; // Reset to first question in filtered set
+      renderQuestion();
+    });
+
+    // Load data on page load
+    loadQuizData();
+  </script>
+</body>
+</html>
